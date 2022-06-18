@@ -42,10 +42,10 @@ def shif():
     root.after(deli, shif)
 
 def tt():
-    subprocess.call(['sh', './ttdownload.sh'])
-    subprocess.call(['sh', './extract.sh'])
+    subprocess.call(['sh', '/home/reinold/bin/ttdownload.sh'])
+    subprocess.call(['sh', '/home/reinold/bin/extract.sh'])
     newss=" (NOS TT 101) "
-    f = open('lines.txt', "r")
+    f = open('/tmp/lines.txt', "r")
     lines = f.read().splitlines()    
     f.close()
     import html

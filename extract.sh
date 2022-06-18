@@ -1,2 +1,2 @@
-cat teletekst.download | ./ttextract101.sh > lines.txt
+cat /tmp/teletekst.download | ttextract101.sh > /tmp/lines.txt
 
