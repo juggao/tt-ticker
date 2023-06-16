@@ -45,8 +45,9 @@ def tt():
     subprocess.call(['sh', '/home/reinold/bin/ttdownload.sh'])
     subprocess.call(['sh', '/home/reinold/bin/extract.sh'])
     newss=" (NOS TT 101) "
-    f = open('/tmp/lines.txt', "r")
-    lines = f.read().splitlines()    
+    f = open('/tmp/lines.txt', encoding = "ISO-8859-1")
+    #lines = f.read().splitlines().decode('utf-8')    
+    lines = f.read().splitlines()
     f.close()
     import html
     for l in lines:
@@ -69,7 +70,7 @@ def main():
     shif.msg=newsstring 
     shif()
     labl.pack()
-    root.geometry("+1+1")
+    root.geometry("+1+1050")
     root.configure(bg='blue')
     thread = threading.Thread(target=updatenews)
     thread.start()
