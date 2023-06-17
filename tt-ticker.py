@@ -1,23 +1,12 @@
-import tkinter as tk
-import tkinter.font as TkFont
-from tkinter import *
-
 import threading
 import time
 import sys
 import os
 import subprocess 
 import pygame as pg
-  
 
 newsstring=""
-deli = 133          # milliseconds of delay per character
-root = tk.Tk()
-svar = tk.StringVar()
-fnt = TkFont.Font(family="Helvetica",size=25,weight="bold",underline=0)
-labl = tk.Label(root, textvariable=svar, height=1, font=fnt, width=200)
 stop=False
-
 
 class TTscroll:
     def __init__(self, screen_rect, lst):
@@ -36,7 +25,6 @@ class TTscroll:
         global newsstring
         font = pg.font.SysFont('Liberation Sans', self.size)
         text = font.render(newsstring,True,self.color)
-        #rect = text.get_rect(center = (self.srect.w, self.srect.centery + self.buff_centery) )
         rect = text.get_rect(center = (self.srect.w, self.srect.centery))
         return text,rect
   
@@ -63,7 +51,6 @@ class TTscroll:
             surf.blit(text, rect)
   
 
-
 def updatenews():
     global newsstring
     try:
@@ -76,20 +63,17 @@ def updatenews():
                 print("SAME NEWS")    
             else:
                 print("NEW NEWS")
-                #print(newss)
-                #shif.msg = newss
-            time.sleep(10)
+            time.sleep(20)
             if stop == True:
                 return
     except KeyboardInterrupt:
         return
     
 def tt():
-    subprocess.call(['sh', '/home/reinold/bin/ttdownload.sh'])
-    subprocess.call(['sh', '/home/reinold/bin/extract.sh'])
+    subprocess.call(['sh', '~/bin/ttdownload.sh'])
+    subprocess.call(['sh', '~/bin/extract.sh'])
     newss=" (NOS TT 101) "
-    f = open('/tmp/lines.txt', encoding = "ISO-8859-1")
-    #lines = f.read().splitlines().decode('utf-8')    
+    f = open('/tmp/lines.txt', encoding = "ISO-8859-1")  
     lines = f.read().splitlines()
     f.close()
     import html
@@ -99,7 +83,6 @@ def tt():
     return newss
         
 def main():
-    #   tk.Button(root, text="Click Me", command=click_btn).pack()
     global newsstring
    
     x = 0
@@ -116,15 +99,12 @@ def main():
     
     thread = threading.Thread(target=updatenews)
     thread.start()
-    
+  
     newsstring = tt()      
     print("FIRST: " , newsstring)  
-
     print(pg.display.Info().current_w)
     screen = pg.display.set_mode(size=(pg.display.Info().current_w,35), flags=pg.NOFRAME)
-#   screen = pg.display.set_mode(size=(pg.display.Info().current_w,35))
-  
-   
+    
     screen_rect = screen.get_rect()
     clock = pg.time.Clock()
     done = False
@@ -138,7 +118,7 @@ def main():
         cred.update()
         cred.render(screen)
         pg.display.update()
-        clock.tick(60)
+        clock.tick(101)
     
         
 if __name__ == "__main__":
