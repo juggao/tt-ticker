@@ -73,8 +73,13 @@ def updatenews():
         return
     
 def tt():
-    subprocess.call(['sh', '~/bin/ttdownload.sh'])
-    subprocess.call(['sh', '~/bin/extract.sh'])
+    s1 = os.path.join(os.path.abspath(sys.path[0]), 'ttdownload.sh')
+    s2 = os.path.join(os.path.abspath(sys.path[0]), 'extract.sh')
+    print (s1)
+    print (s2)
+    
+    subprocess.call(['bash', s1])
+    subprocess.call(['bash', s2])
     newss=" (NOS TT 101) "
     f = open('/tmp/lines.txt', encoding = "ISO-8859-1")  
     lines = f.read().splitlines()
@@ -107,7 +112,7 @@ def main():
     print("FIRST: " , newsstring)  
     print(pg.display.Info().current_w)
     screen = pg.display.set_mode(size=(pg.display.Info().current_w,35), flags=pg.NOFRAME)
-    
+    pg.display.gl_set_attribute(pg.GL_ACCELERATED_VISUAL,1)
     screen_rect = screen.get_rect()
     clock = pg.time.Clock()
     done = False
