@@ -1,3 +1,6 @@
+#
+# NOS Teletekst 101 ticker  (c) 2023 René Oudeweg   GPL 
+#
 import threading
 import time
 import sys
