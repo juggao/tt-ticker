@@ -7,6 +7,7 @@ import sys
 import os
 import subprocess 
 import pygame as pg
+import notify2
 
 newsstring=""
 stop=False
@@ -67,6 +68,9 @@ def updatenews():
             else:
                 print("NEW NEWS")
                 newsstring = newss;
+                notify2.init('foo')
+                n = notify2.Notification('TELETEKST ALERT', newsstring[:70])
+                n.show()
             time.sleep(20)
             if stop == True:
                 return
