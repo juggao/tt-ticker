@@ -66,6 +66,7 @@ def updatenews():
                 print("SAME NEWS")    
             else:
                 print("NEW NEWS")
+                newsstring = newss;
             time.sleep(20)
             if stop == True:
                 return
