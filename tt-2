@@ -1,0 +1,3 @@
+python ~/bin/tt-ticker-2.py &
+python ~/bin/newsapiticker.py de &
+
