@@ -120,7 +120,8 @@ def main():
     import os
     os.environ['SDL_VIDEO_WINDOW_POS'] = "%d,%d" % (x,y)
 
-    with open('apikey.txt', 'r') as file:
+    keyfile = os.path.join(os.path.abspath(sys.path[0]), 'apikey.txt')
+    with open(keyfile, 'r') as file:
         apikey = file.read().rstrip()
     
     print("apikey: "+apikey)
