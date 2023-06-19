@@ -1,5 +1,8 @@
 #
-# NOS Teletekst 101 ticker  (c) 2023 René Oudeweg   GPL 
+# NEWSAPI.ORG ticker  (c) 2023 René Oudeweg   GPL 
+# usage python newsapiticker.py [countrycode]
+#
+# write your newsapi.org apikey in file apikey.txt first!
 #
 import threading
 import time
