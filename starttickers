@@ -1,0 +1,5 @@
+#!/bin/bash
+python ~/bin/tt-ticker.py &
+python ~/bin/tickeromroepvenlo.py &
+python ~/bin/newsapiticker.py &
+
