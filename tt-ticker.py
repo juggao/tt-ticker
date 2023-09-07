@@ -1,73 +1,208 @@
 #
-# NOS Teletekst 101 ticker  (c) 2023 René Oudeweg   GPL 
+# NOS Teletekst 101 ticker - Pyglet version  (c) 2023 René Oudeweg   GPL 
 #
+# TODO: background color ticker
+# 
 import threading
 import time
 import sys
 import os
 import subprocess 
-import pygame as pg
+import pyglet as pl
+from screeninfo import get_monitors
+from pyglet.text import Label
+from pyglet.window import key
 import notify2
+from pyglet.window import Window
 
-newsstring=""
+newsstring="TT-ticker"
 stop=False
+scroll_speed = 100  # Adjust this value to change the scrolling speed
+scroll_speed_factor = 1
+ttscroll = None
+updatenewsstring = False
 
-class TTscroll:
-    def __init__(self, screen_rect, lst):
-        self.srect = screen_rect
-        self.lst = lst
-        self.size = 18
-        self.color = (0,0,0)
-        self.buff_centery = self.srect.height/2 + 5
-        #self.buff_centery = self.srect.h
-        self.buff_lines = 50
-        self.timer = 0.0
-        self.delay = 0
-        self.make_surfaces()
+TICKERHEIGHT = 35
+FONTSIZE = 19
+DEBUG = 0
+FPS = 60
+DEFAULTTXTCOLOR=(255,0,0,255)
+COLORCHANGE = 6
+YPOSFACTOR = 2
+YPOS = 1
+MON_WIDTH = 0
+MON_HEIGHT = 0
+
+def printd(txt):
+    if DEBUG:
+        print("DEBUG: "+txt) 
+
+class QuitException(Exception):
+    def __init__(self, message):
+        super().__init__(message)
+
+class TTscroll(Window):
+    def __init__(self, winx, winy, txt, posx, posy):
+        self.xlib_config = pl.gl.Config(double_buffer=True, depth_size=16, sample_buffers=1, samples=4)
+        super().__init__(width=winx, height=winy, config=self.xlib_config, style=pl.window.Window.WINDOW_STYLE_BORDERLESS)
+        self.set_location(posx, posy)
+        self.winx = winx
+        self.winy = winy     
+        self.posx = posx
+        self.posy = posy
+        self.gbatch = pl.graphics.Batch()
+        self.dt = 1.0
+        self.txtcolor = DEFAULTTXTCOLOR
+        self.R = DEFAULTTXTCOLOR[0]
+        self.G = DEFAULTTXTCOLOR[1]
+        self.B = DEFAULTTXTCOLOR[2]
+        self.A = DEFAULTTXTCOLOR[3]
+        # Create a label with scrolling text
+        self.tickertext = txt   
+        self.label = Label(self.tickertext, font_name="Liberation Sans", font_size=FONTSIZE, x=self.width, y=self.height // 2, 
+              anchor_x="right", anchor_y="center", color=self.txtcolor, batch=self.gbatch)
+        self.reset_textpos()
+        
+    def reset_textpos(self):
+        printd(f"reset textpos: x = {self.width}")
+        self.label.x = self.width + self.label.content_width
+        self.label.y = self.height // 2
+
+    def reset_textpos_when_complete(self):
+        self.reset_textpos()
+
+    def set_txtcolor(self, txtcolor):
+        printd(f"New textcolor : R={self.R} G={self.G} B={self.B} A={self.A}")
+        self.txtcolor = txtcolor
+        self.label.begin_update()
+        self.label.color = txtcolor
+        self.label.end_update()
+
+    def set_text(self,txt):
+        self.label.begin_update()
+        self.label.text = txt
+        self.label.end_update()
+        self.tickertext = txt
+        self.reset_textpos()
+
+    def set_increase_fontheigth(self):
+        self.label.begin_update()
+        self.label.font_size += 1
+        self.label.end_update()
+        printd(f"font_size: {self.label.font_size}")
+
+    def set_decrease_fontheigth(self):
+        self.label.begin_update()
+        self.label.font_size -= 1
+        self.label.end_update()
+        printd(f"font_size: {self.label.font_size}")
+
+    def set_increase_tickerheigth(self):
+        self.height += 1
+        printd(f"window height: {self.height}")
+        self.reset_textpos()
+
+    def set_decrease_tickerheigth(self):
+        self.height -= 1
+        printd(f"window height: {self.height}")
+        self.reset_textpos()
+
+    def move_tickerup(self):
+        self.posy = self.posy - (self.height * YPOSFACTOR)
+        if self.posy <= 0:
+            self.posy = 0
+        self.set_location(self.posx, self.posy)
     
-    def make_text(self,message):
-        global newsstring
-        font = pg.font.SysFont('Liberation Sans', self.size)
-        text = font.render(newsstring,True,self.color)
-        rect = text.get_rect(center = (self.srect.w, self.srect.centery))
-        return text,rect
-  
-    def make_surfaces(self):
-        global newsstring
-        self.text = []
-        for i, line in enumerate(newsstring):
-            l = self.make_text(line)
-            l[1].y =  self.srect.height/2 - 7
-            l[1].x =  self.srect.w
-            self.text.append(l)
-  
-    def update(self):
-        if pg.time.get_ticks()-self.timer > self.delay:
-            self.timer = pg.time.get_ticks()
-            for text, rect in self.text:
-                rect.x -= 2
-            if rect.x <= -(rect.w):
-                print("center")    
-                self.make_surfaces()
-                
-    def render(self, surf):
-        for text, rect in self.text:
-            surf.blit(text, rect)
-  
+    def move_tickerdown(self):
+        self.posy = self.posy + (self.height * YPOSFACTOR)
+        if self.posy >= MON_HEIGHT:
+            self.posy = MON_HEIGHT - self.height
+        self.set_location(self.posx, self.posy)
+
+    def increase_tickerspeed(self):
+        global scroll_speed_factor
+        scroll_speed_factor += 2
+        printd(f"scroll speed factor: {scroll_speed_factor}")
+
+    def decrease_tickerspeed(self):
+        global scroll_speed_factor
+        scroll_speed_factor -= 2
+        printd(f"scroll speed factor: {scroll_speed_factor}")
+        
+    def update(self,delta):
+        global scroll_speed
+        global scroll_speed_factor
+        global updatenewsstring
+        if updatenewsstring==True:
+            self.set_text(newsstring)
+            updatenewsstring = False
+
+        self.dt = delta
+        if delta<0:
+            self.label.x -= scroll_speed * (delta*scroll_speed_factor)  # Scroll the text based on scroll_speedQ
+        else:
+            self.label.x -= 2
+        printd(f"update self.label.x = {self.label.x} scroll_speed = {scroll_speed} dt: {delta}")
+        if self.label.x <= 0:
+           self.reset_textpos_when_complete()
+
+    def on_key_press(self, symbol, modifiers):
+        printd(f"A key was pressed: {symbol} {modifiers}")
+        if symbol == key.Q:
+            raise QuitException("Quit")
+        elif symbol == key.R:
+            self.R = (self.R + COLORCHANGE) % 256            
+            self.set_txtcolor((self.R,self.G,self.B,self.A))
+        elif symbol == key.G:
+            self.G = (self.G + COLORCHANGE) % 256
+            self.set_txtcolor((self.R,self.G,self.B,self.A))
+        elif symbol == key.B:
+            self.B = (self.B + COLORCHANGE) % 256
+            self.set_txtcolor((self.R,self.G,self.B,self.A))
+        elif symbol == key.P:
+            self.reset_textpos()
+        elif symbol == key.F:
+            self.set_increase_fontheigth()
+        elif symbol == key.D:
+            self.set_decrease_fontheigth()
+        elif symbol == key.H:
+            self.set_increase_tickerheigth()
+        elif symbol == key.J:
+            self.set_decrease_tickerheigth()
+        elif symbol == key.MOTION_UP:
+            self.move_tickerup()
+        elif symbol == key.MOTION_DOWN:
+            self.move_tickerdown()
+        elif symbol == key.PLUS:
+            self.increase_tickerspeed()
+        elif symbol == key.MINUS:
+            self.decrease_tickerspeed()
+
+    def on_draw(self):
+        self.clear()
+        self.gbatch.draw()
+        
 
 def updatenews():
     global newsstring
+    global ttscroll
+    global stop
+    global updatenewsstring
     try:
         while (1):
-            print("updatenews")
+            printd("updatenews")
             newss=tt()
-            print("glob:"+ newsstring)
-            print("update:" + newss)
+            printd("glob:"+ newsstring)
+            printd("update:" + newss)
             if newsstring == newss:
-                print("SAME NEWS")    
+                printd("SAME NEWS")    
             else:
-                print("NEW NEWS")
-                newsstring = newss;
+                printd("NEW NEWS")
+                newsstring = newss
+                updatenewsstring = True
+                #ttscroll.set_text(newsstring)  # Update the label text
+                #ttscroll.reset_textpos()  # Reset text position when text changes
+
                 notify2.init('foo')
                 n = notify2.Notification('TELETEKST ALERT', newsstring[:70])
                 n.show()
@@ -93,50 +228,63 @@ def tt():
     for l in lines:
         l = html.unescape(l)
         newss += l + " *** "  
-    return newss
-        
+    return newss   
+
 def main():
     global newsstring
-   
-    x = 0
+    global ttscroll
+    global stop 
+    global YPOSFACTOR
+    global MON_HEIGHT
+    global MON_WIDTH
+
+    argc = len(sys.argv)
+    #if argc > 1:
+    #    YPOSFACTOR = int(sys.argv[1])
+    #else:
+    #    YPOSFACTOR = 1
+    printd(f"YPOSFACTOR = {YPOSFACTOR}")
+    
+    x = 1
     y = 1080
-    from screeninfo import get_monitors
     for m in get_monitors():
-        y = m.height-35
+        if m.is_primary:
+            y = m.height
+            MON_HEIGHT = m.height
+            MON_WIDTH = m.width
         print(str(m))
-    
-    import os
+
+    if m == None:
+        exit
+
     os.environ['SDL_VIDEO_WINDOW_POS'] = "%d,%d" % (x,y)
-  
-    pg.init() 
-    
+    printd(f"x = {x} , y = {y}")
+
+    newsstring = tt()      
+    printd("FIRST: " + newsstring)  
+    ttscroll = TTscroll(MON_WIDTH, TICKERHEIGHT, newsstring, x, y-(YPOS*TICKERHEIGHT))    
+
     thread = threading.Thread(target=updatenews)
     thread.start()
-  
-    newsstring = tt()      
-    print("FIRST: " , newsstring)  
-    print(pg.display.Info().current_w)
-    screen = pg.display.set_mode(size=(pg.display.Info().current_w,35), flags=pg.NOFRAME)
-    pg.display.gl_set_attribute(pg.GL_ACCELERATED_VISUAL,1)
-    screen_rect = screen.get_rect()
-    clock = pg.time.Clock()
-    done = False
-    cred = TTscroll(screen_rect, newsstring)    
-            
-    while not done:
-        for event in pg.event.get(): 
-            if event.type == pg.QUIT:
-                done = True
-        screen.fill((255,255,255))
-        cred.update()
-        cred.render(screen)
-        pg.display.update()
-        clock.tick(101)
+    
+    # Register the update function to be called regularly
+    pl.clock.schedule_interval(ttscroll.update, 1 / FPS) 
+    try:
+        pl.app.run()
+    except pl.window.WindowException as e:
+        print(f"Window error: {e}")
+    except QuitException as e:
+        print(f"QuitException: {e}")
+    
+    stop = True
+    printd("unschedule ttscroll.update")
+    pl.clock.unschedule(ttscroll.update)
+    ttscroll = None
+    printd("waiting for thread to join")  
+    thread.join()
+    printd("exiting...")
+    pl.app.exit()
     
         
 if __name__ == "__main__":
     main()
-
-
-  
-
