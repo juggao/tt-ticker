@@ -3,8 +3,3 @@ echo `ps -eo pid,command | grep tt-ticker` > /tmp/ttpid
 kill -9 `awk '{print $1}' /tmp/ttpid`
 echo `ps -eo pid,command | grep newsapiticker` > /tmp/ttpid
 kill -9 `awk '{print $1}' /tmp/ttpid`
-echo `ps -eo pid,command | grep tickeromroepvenlo` > /tmp/ttpid
-kill -9 `awk '{print $1}' /tmp/ttpid`
-
-
-
