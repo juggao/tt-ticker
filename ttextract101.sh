@@ -1,4 +1,17 @@
 #!/bin/bash
 start_tag="span class=\"cyan \""
 end_tag="/span"
-awk -F'[<>]' -v taga="$start_tag" -v tagb="$end_tag" '{ i=1; while (i<=NF) { if ($(i)==taga && $(i+2)==tagb) { print $(i+1) }; i++} }'
+intarget=0
+linestring=""
+awk -F'[<>]' -v taga="$start_tag" -v tagb="$end_tag" '{
+    for (i = 1; i <= NF; i++) {
+        if ($(i) == taga) {
+            linestring = $(i+1)
+            if (match($(i+2), /a class="cyan" href="\/webplus\?/)) {
+                linestring = linestring $(i+3)
+                linestring = linestring $(i+5)
+            }    
+            print linestring
+            next
+        } 
+    }}'
