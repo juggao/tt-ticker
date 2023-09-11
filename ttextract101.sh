@@ -11,6 +11,9 @@ awk -F'[<>]' -v taga="$start_tag" -v tagb="$end_tag" '{
                 linestring = linestring $(i+3)
                 linestring = linestring $(i+5)
             }    
+            if (match($(i+6), /a class="yellow" href="\/webplus\?/)) {
+                linestring = linestring " - " $(i+7)
+            }    
             print linestring
             next
         } 
